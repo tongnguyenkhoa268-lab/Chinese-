@@ -1,56 +1,130 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSK Flashcard & Chatbot</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; height: 100vh; }
-        
-        .left-panel { flex: 1; padding: 20px; border-right: 2px solid #ddd; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
-        .right-panel { flex: 1; display: flex; flex-direction: column; background: white; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSK Luyện Tập & AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+    :root{
+        --bg:#F5F6F4; --panel:#FFFFFF; --ink:#22262B; --ink-soft:#5B6169;
+        --border:#E4E1DA; --accent:#C1443C; --accent-dark:#9E362F; --accent-soft:#F7E3E1;
+        --success:#2F7A5C; --success-soft:#E3F1EA; --radius:14px;
+        --font-ui:'Be Vietnam Pro','Segoe UI',sans-serif; --font-cn:'Noto Serif SC','Songti SC',serif;
+    }
+    *{box-sizing:border-box;}
+    body{ font-family:var(--font-ui); margin:0; padding:0; background:var(--bg); color:var(--ink); }
+    button, input, textarea{ font-family:inherit; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+    .hidden{ display:none !important; }
 
-        /* Khung nhập dữ liệu */
-        .input-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 80%; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .input-box textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; min-height: 60px; font-family: inherit; }
-        .input-box button { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        /* Thẻ Flashcard */
-        .flashcard { width: 320px; height: 220px; perspective: 1000px; cursor: pointer; margin-top: 20px; position: relative; }
-        .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
-        .flashcard.flipped .card-inner { transform: rotateY(180deg); }
-        .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .card-front { background: #fff; color: #333; }
-        .card-back { background: #2b5278; color: white; transform: rotateY(180deg); }
-        
-        .word-cn { font-size: 3.5em; font-weight: bold; margin-bottom: 5px; }
-        .word-pin { font-size: 1.2em; color: #666; margin-bottom: 15px; }
-        .word-vn { font-size: 1.6em; padding: 0 20px; text-align: center; }
-        
-        /* Nút loa đọc âm thanh */
-        .speaker-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; z-index: 10; opacity: 0.6; }
-        .speaker-btn:hover { opacity: 1; transform: scale(1.1); }
+    .app-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:var(--panel); border-bottom:1px solid var(--border); }
+    .app-header h1{ font-size:1.3em; margin:0; }
+    .icon-btn{ background:none; border:1px solid var(--border); border-radius:50%; width:40px; height:40px; font-size:1.1em; cursor:pointer; }
+    .icon-btn:hover{ background:var(--bg); }
 
-        .controls { margin-top: 20px; display: flex; gap: 10px; }
-        .controls button { padding: 10px 20px; cursor: pointer; border: none; background: #0084ff; color: white; border-radius: 5px; font-weight: bold; }
-        .delete-btn { background: #dc3545 !important; }
+    .layout{ display:flex; gap:20px; padding:20px; max-width:1400px; margin:0 auto; align-items:flex-start; }
+    @media (max-width:900px){ .layout{ flex-direction:column; padding:14px; gap:14px; } }
 
-        /* Giao diện Chatbot */
-        .chat-header { background: #2b5278; color: white; padding: 15px; text-align: center; font-weight: bold; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; background: #e5ddd5; }
-        .chat-input { padding: 15px; background: #f0f0f0; display: flex; gap: 10px; }
-        .chat-input input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .chat-input button { padding: 10px 20px; background: #2b5278; color: white; border: none; border-radius: 20px; }
-    </style>
+    .vocab-panel{ flex:1; min-width:0; background:var(--panel); border-radius:16px; padding:20px; display:flex; flex-direction:column; align-items:center; }
+    .practice-panel{ flex:1.3; min-width:0; background:var(--panel); border-radius:16px; padding:20px; }
+
+    .input-box{ width:100%; display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+    .input-box textarea{ padding:10px; border:1px solid var(--border); border-radius:8px; resize:vertical; min-height:60px; font-size:15px; }
+    .input-box button{ border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:600; color:#fff; background:var(--success); }
+    .delete-btn{ background:var(--accent) !important; }
+
+    .flashcard{ width:100%; max-width:320px; height:220px; perspective:1000px; cursor:pointer; margin-top:6px; position:relative; }
+    .card-inner{ width:100%; height:100%; transition:transform 0.6s; transform-style:preserve-3d; position:relative; }
+    .flashcard.flipped .card-inner{ transform:rotateY(180deg); }
+    .card-front, .card-back{ width:100%; height:100%; position:absolute; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center; border-radius:var(--radius); border:1px solid var(--border); }
+    .card-front{ background:var(--panel); color:var(--ink); }
+    .card-back{ background:var(--accent); color:#fff; transform:rotateY(180deg); border:none; }
+    .word-cn{ font-family:var(--font-cn); font-size:3em; font-weight:700; margin-bottom:5px; }
+    .word-pin{ font-size:1.1em; color:var(--ink-soft); margin-bottom:15px; }
+    .word-vn{ font-size:1.4em; padding:0 20px; text-align:center; }
+    .speaker-btn{ position:absolute; top:12px; right:12px; background:none; border:none; font-size:1.4em; cursor:pointer; z-index:10; opacity:0.6; }
+    .speaker-btn:hover{ opacity:1; }
+    .controls{ margin-top:18px; display:flex; gap:8px; }
+    .controls button{ padding:9px 16px; cursor:pointer; border:none; background:var(--ink); color:#fff; border-radius:8px; font-weight:600; }
+    #wordCount{ font-weight:600; color:var(--ink-soft); margin-top:12px; font-size:14px; }
+
+    .practice-header{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+    .tabs{ display:flex; gap:6px; background:var(--bg); border-radius:10px; padding:4px; }
+    .tab-btn{ border:none; background:none; padding:9px 14px; border-radius:8px; cursor:pointer; font-weight:600; color:var(--ink-soft); }
+    .tab-btn.active{ background:var(--panel); color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .diff-selector{ display:flex; gap:6px; flex-wrap:wrap; }
+    .diff-btn{ border:1px solid var(--border); background:var(--panel); padding:7px 12px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-soft); }
+    .diff-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+    .action-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+    .primary-btn{ background:var(--accent); color:#fff; border:none; padding:11px 18px; border-radius:8px; font-weight:600; cursor:pointer; }
+    .secondary-btn{ background:var(--ink); color:#fff; border:none; padding:11px 18px; border-radius:8px; font-weight:600; cursor:pointer; }
+    .ghost-btn{ background:none; border:1px solid var(--border); padding:9px 14px; border-radius:8px; font-weight:600; cursor:pointer; color:var(--ink); }
+    .loading-text{ color:var(--ink-soft); font-size:14px; }
+
+    .passage-card{ background:var(--bg); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+    .card-label{ font-size:13px; color:var(--ink-soft); margin:0 0 6px; font-weight:600; }
+    .passage-text{ margin:0; line-height:1.6; }
+    .cn-textarea{ width:100%; min-height:90px; font-family:var(--font-cn); font-size:19px; padding:12px; border:1px solid var(--border); border-radius:var(--radius); resize:vertical; margin-bottom:14px; }
+
+    .result-card{ background:var(--bg); border-radius:var(--radius); padding:18px; }
+    .result-header{ display:flex; justify-content:flex-end; margin-bottom:4px; }
+    .stamp{ display:inline-block; border:2px solid var(--accent); color:var(--accent); font-family:var(--font-cn); font-weight:700; font-size:13px; padding:2px 10px; border-radius:4px; transform:rotate(-8deg); letter-spacing:2px; }
+    .hanzi-line{ font-family:var(--font-cn); font-size:22px; line-height:1.6; margin:4px 0; }
+    .hanzi-line.small{ font-size:17px; }
+    .pinyin-line{ color:var(--ink-soft); font-size:14px; margin:0 0 12px; letter-spacing:0.3px; }
+    .error-list{ margin:10px 0; }
+    .error-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; padding:8px 0; border-bottom:1px dashed var(--border); font-size:14px; }
+    .error-wrong{ color:var(--accent); text-decoration:line-through; font-family:var(--font-cn); font-size:16px; }
+    .error-arrow{ color:var(--ink-soft); }
+    .error-correct{ color:var(--success); font-weight:700; font-family:var(--font-cn); font-size:16px; }
+    .error-explain{ color:var(--ink-soft); flex-basis:100%; margin-top:2px; }
+    .no-error{ color:var(--success); font-weight:600; }
+    .comment-text{ color:var(--ink-soft); font-size:14px; line-height:1.6; }
+    .pron-result{ margin-top:10px; font-size:14px; }
+    .listening-text, .asr-text{ color:var(--ink-soft); }
+    .error-text{ color:var(--accent); }
+
+    .scenario-text{ background:var(--accent-soft); color:var(--accent-dark); padding:10px 14px; border-radius:10px; font-size:14px; margin-bottom:14px; }
+    .conversation{ max-height:340px; overflow-y:auto; margin-bottom:10px; padding:4px; }
+    .bubble-row{ display:flex; margin-bottom:12px; }
+    .bubble-row.user{ justify-content:flex-end; }
+    .bubble{ max-width:80%; padding:10px 14px; border-radius:14px; font-family:var(--font-cn); font-size:17px; line-height:1.5; }
+    .bubble-row.ai .bubble{ background:var(--panel); border:1px solid var(--border); border-bottom-left-radius:4px; }
+    .bubble-row.user .bubble{ background:var(--accent-soft); border-bottom-right-radius:4px; }
+    .bubble-meta{ font-size:12px; color:var(--ink-soft); font-family:var(--font-ui); margin-top:4px; }
+    .mic-row{ display:flex; align-items:center; gap:14px; justify-content:center; padding-top:8px; }
+    .mic-btn{ width:56px; height:56px; border-radius:50%; border:none; background:var(--accent); color:#fff; font-size:22px; cursor:pointer; flex-shrink:0; }
+    .mic-btn.listening{ animation:pulse 1.2s infinite; background:var(--accent-dark); }
+    .mic-hint{ color:var(--ink-soft); font-size:14px; }
+    @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(193,68,60,0.5);} 70%{box-shadow:0 0 0 14px rgba(193,68,60,0);} 100%{box-shadow:0 0 0 0 rgba(193,68,60,0);} }
+    @media (prefers-reduced-motion: reduce){ .mic-btn.listening{ animation:none; } }
+
+    .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:100; }
+    .modal-box{ background:var(--panel); border-radius:var(--radius); padding:22px; max-width:420px; width:100%; }
+    .modal-box h3{ margin-top:0; }
+    .modal-note{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+    .modal-box input{ width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; margin:10px 0 16px; font-size:15px; }
+    .modal-actions{ display:flex; justify-content:flex-end; gap:10px; }
+</style>
 </head>
 <body>
 
-    <!-- NỬA TRÁI: FLASHCARD -->
-    <div class="left-panel">
-        <h2 style="color: #2b5278;">📚 Kho Từ Vựng HSK</h2>
-        
+<header class="app-header">
+    <h1>📚 HSK Luyện Tập &amp; AI</h1>
+    <button class="icon-btn" onclick="openApiKeyModal()" title="Đổi OpenAI API key">⚙️</button>
+</header>
+
+<div class="layout">
+    <!-- NỬA TRÁI: KHO TỪ VỰNG + FLASHCARD -->
+    <aside class="vocab-panel">
+        <h2 style="color:var(--accent); margin-top:0;">Kho Từ Vựng HSK</h2>
+
         <div class="input-box">
-            <textarea id="quizletInput" placeholder="Copy từ Quizlet dán vào đây (Định dạng: Chữ Hán [Tab] Pinyin [Tab] Nghĩa) hoặc (Chữ Hán [Tab] Nghĩa)..."></textarea>
+            <textarea id="quizletInput" placeholder="Copy từ Quizlet dán vào đây (Chữ Hán [Tab] Pinyin [Tab] Nghĩa) hoặc (Chữ Hán [Tab] Nghĩa)..."></textarea>
             <button onclick="importQuizlet()">📥 Nhập từ vựng từ Quizlet</button>
             <button class="delete-btn" onclick="clearAll()">🗑️ Xóa toàn bộ kho từ</button>
         </div>
@@ -73,100 +147,465 @@
             <button onclick="speakWord(event)">🔊 Đọc lại</button>
             <button onclick="nextWord()">Sau ➡️</button>
         </div>
-        <p id="wordCount" style="font-weight: bold; color: #555;">Tổng số từ: 0</p>
-    </div>
+        <p id="wordCount">Tổng số từ: 0</p>
+    </aside>
 
-    <!-- NỬA PHẢI: CHATBOT -->
-    <div class="right-panel">
-        <div class="chat-header">🤖 AI Chatbot (Chờ lắp não)</div>
-        <div class="chat-messages"></div>
-        <div class="chat-input">
-            <button title="Bấm để nói">🎤</button>
-            <input type="text" placeholder="Gõ tiếng Trung vào đây..." disabled>
-            <button disabled>Gửi</button>
+    <!-- NỬA PHẢI: LUYỆN VIẾT / LUYỆN NÓI -->
+    <main class="practice-panel">
+        <div class="practice-header">
+            <nav class="tabs">
+                <button class="tab-btn active" data-tab="write" onclick="switchTab('write')">✍️ Luyện viết</button>
+                <button class="tab-btn" data-tab="speak" onclick="switchTab('speak')">🗣️ Luyện nói</button>
+            </nav>
+            <div class="diff-selector">
+                <button class="diff-btn" data-diff="de" onclick="setDifficulty('de')">Dễ</button>
+                <button class="diff-btn active" data-diff="vua" onclick="setDifficulty('vua')">Vừa</button>
+                <button class="diff-btn" data-diff="kho" onclick="setDifficulty('kho')">Khó</button>
+                <button class="diff-btn" data-diff="sieukho" onclick="setDifficulty('sieukho')">Siêu khó</button>
+            </div>
+        </div>
+
+        <!-- TAB: LUYỆN VIẾT -->
+        <section id="tab-write" class="tab-content">
+            <div class="action-row">
+                <button class="primary-btn" onclick="generatePassage()">🎲 Tạo bài mới</button>
+                <span id="writeLoading" class="loading-text hidden">⏳ Đang tạo bài...</span>
+            </div>
+
+            <div id="passageCard" class="passage-card hidden">
+                <p class="card-label">Đoạn văn tiếng Anh — hãy dịch sang tiếng Trung:</p>
+                <p id="passageText" class="passage-text"></p>
+            </div>
+
+            <textarea id="writeInput" class="cn-textarea hidden" placeholder="Nhập bản dịch tiếng Trung ở đây..."></textarea>
+
+            <div class="action-row hidden" id="gradeRow">
+                <button class="secondary-btn" onclick="gradeWriting()">✅ Chấm bài</button>
+                <span id="gradeLoading" class="loading-text hidden">⏳ Đang chấm...</span>
+            </div>
+
+            <div id="writeResult" class="result-card hidden"></div>
+        </section>
+
+        <!-- TAB: LUYỆN NÓI -->
+        <section id="tab-speak" class="tab-content hidden">
+            <div class="action-row">
+                <button class="primary-btn" onclick="generateScenario()">🎲 Tạo tình huống mới</button>
+                <span id="speakLoading" class="loading-text hidden">⏳ Đang tạo...</span>
+            </div>
+
+            <p id="scenarioText" class="scenario-text hidden"></p>
+            <div id="conversation" class="conversation"></div>
+            <div id="turnFeedback" class="pron-result"></div>
+
+            <div class="mic-row hidden" id="micRow">
+                <button class="mic-btn" id="micBtn" onclick="startListeningForReply()">🎤</button>
+                <span class="mic-hint">Bấm để nói câu trả lời bằng tiếng Trung</span>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- MODAL: API KEY -->
+<div id="apiKeyModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3>Nhập OpenAI API key</h3>
+        <p class="modal-note">Key chỉ lưu trong trình duyệt của bạn (localStorage) và được gửi trực tiếp tới OpenAI mỗi khi tạo bài/chấm bài — trang web không lưu hay nhìn thấy key này ở đâu khác.<br><br>
+        Lưu ý quan trọng: đây là ứng dụng chạy 100% trên trình duyệt, không có server riêng. Nếu bạn public trang này lên internet (ví dụ GitHub Pages) và người khác mở lên dùng, họ sẽ phải nhập key <em>của họ</em> — đừng để lộ key của chính bạn trong code hoặc chia sẻ cho người khác dùng chung.</p>
+        <input type="password" id="apiKeyInput" placeholder="sk-...">
+        <div class="modal-actions">
+            <button class="ghost-btn" onclick="closeApiKeyModal()">Đóng</button>
+            <button class="primary-btn" onclick="submitApiKey()">Lưu</button>
         </div>
     </div>
+</div>
 
-    <script>
-        let vocabList = JSON.parse(localStorage.getItem('hsk_vocab')) || [];
-        let currentIndex = 0;
+<script>
+    // ====== CẤU HÌNH ======
+    // Model OpenAI dùng cho tạo bài / chấm bài. Nếu gặp lỗi "model not found",
+    // vào platform.openai.com/docs/models kiểm tra tên model hiện có và đổi ở đây.
+    const OPENAI_MODEL = 'gpt-5-mini';
 
-        // Cập nhật thẻ hiển thị
-        function updateCard() {
-            if(vocabList.length === 0) {
-                document.getElementById('displayCn').innerText = "Trống";
-                document.getElementById('displayPin').innerText = "";
-                document.getElementById('displayVn').innerText = "Vui lòng nhập từ vựng";
-                document.getElementById('wordCount').innerText = `Tổng số từ: 0`;
-                return;
+    const DIFFICULTY_CONFIG = {
+        de:      { label:'Dễ',       sentences:'2-3 câu đơn giản, chủ đề gần gũi hàng ngày', wordCount:5 },
+        vua:     { label:'Vừa',      sentences:'3-4 câu, có 1-2 mệnh đề phụ',                 wordCount:6 },
+        kho:     { label:'Khó',      sentences:'4-5 câu phức, nhiều liên từ',                  wordCount:8 },
+        sieukho: { label:'Siêu khó', sentences:'5-6 câu rất phức tạp, ngữ pháp nâng cao',       wordCount:10 }
+    };
+
+    // ====== TRẠNG THÁI ======
+    let vocabList = JSON.parse(localStorage.getItem('hsk_vocab')) || [];
+    let currentIndex = 0;
+    let currentDifficulty = 'vua';
+    let currentPassage = '';
+    let currentTargetWords = [];
+    let speakConversation = [];
+    let pronRecognizer = null;
+    let speakRecognizer = null;
+
+    // ====== KHO TỪ VỰNG / FLASHCARD (giữ nguyên logic gốc) ======
+    function updateCard() {
+        if (vocabList.length === 0) {
+            document.getElementById('displayCn').innerText = "Trống";
+            document.getElementById('displayPin').innerText = "";
+            document.getElementById('displayVn').innerText = "Vui lòng nhập từ vựng";
+            document.getElementById('wordCount').innerText = `Tổng số từ: 0`;
+            return;
+        }
+        document.getElementById('displayCn').innerText = vocabList[currentIndex].cn;
+        document.getElementById('displayPin').innerText = vocabList[currentIndex].pin || "";
+        document.getElementById('displayVn').innerText = vocabList[currentIndex].vn;
+        document.getElementById('wordCount').innerText = `Từ số: ${currentIndex + 1} / ${vocabList.length}`;
+        document.querySelector('.flashcard').classList.remove('flipped');
+        speakWord();
+    }
+
+    function speakText(text, rate = 0.9) {
+        if (!text) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = rate;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function speakWord(event) {
+        if (event) event.stopPropagation();
+        if (vocabList.length === 0) return;
+        speakText(vocabList[currentIndex].cn);
+    }
+
+    function importQuizlet() {
+        let text = document.getElementById('quizletInput').value.trim();
+        if (!text) { alert("Vui lòng dán dữ liệu từ Quizlet vào!"); return; }
+
+        let lines = text.split('\n');
+        let count = 0;
+
+        lines.forEach(line => {
+            let parts = line.split('\t');
+            if (parts.length >= 2) {
+                let cn = parts[0].trim();
+                let pin = parts.length === 3 ? parts[1].trim() : "";
+                let vn = parts.length === 3 ? parts[2].trim() : parts[1].trim();
+                vocabList.push({ cn, pin, vn });
+                count++;
             }
-            document.getElementById('displayCn').innerText = vocabList[currentIndex].cn;
-            document.getElementById('displayPin').innerText = vocabList[currentIndex].pin || "";
-            document.getElementById('displayVn').innerText = vocabList[currentIndex].vn;
-            document.getElementById('wordCount').innerText = `Từ số: ${currentIndex + 1} / ${vocabList.length}`;
-            document.querySelector('.flashcard').classList.remove('flipped');
-            
-            // Tự động đọc từ khi chuyển sang từ mới
-            speakWord(); 
+        });
+
+        if (count > 0) {
+            localStorage.setItem('hsk_vocab', JSON.stringify(vocabList));
+            document.getElementById('quizletInput').value = '';
+            alert(`Đã thêm thành công ${count} từ vựng!`);
+            currentIndex = vocabList.length - count;
+            updateCard();
+        } else {
+            alert("Không nhận diện được định dạng. Đảm bảo dữ liệu được copy từ Quizlet (cách nhau bằng phím Tab).");
         }
+    }
 
-        // Đọc tiếng Trung bằng Web Speech API
-        function speakWord(event) {
-            if(event) event.stopPropagation(); // Ngăn việc click nút loa làm lật thẻ
-            if(vocabList.length === 0) return;
-            
-            let word = vocabList[currentIndex].cn;
-            let utterance = new SpeechSynthesisUtterance(word);
-            utterance.lang = 'zh-CN'; // Ngôn ngữ tiếng Trung Quốc
-            utterance.rate = 0.9; // Tốc độ đọc (1 là bình thường, nhỏ hơn là chậm lại)
-            window.speechSynthesis.speak(utterance);
+    function clearAll() {
+        if (confirm("Bạn có chắc muốn xóa sạch kho từ vựng không?")) {
+            vocabList = [];
+            localStorage.removeItem('hsk_vocab');
+            updateCard();
         }
+    }
 
-        // Nhập dữ liệu từ Quizlet
-        function importQuizlet() {
-            let text = document.getElementById('quizletInput').value.trim();
-            if(!text) { alert("Vui lòng dán dữ liệu từ Quizlet vào!"); return; }
+    function flipCard() { document.querySelector('.flashcard').classList.toggle('flipped'); }
+    function nextWord() { if (currentIndex < vocabList.length - 1) { currentIndex++; updateCard(); } }
+    function prevWord() { if (currentIndex > 0) { currentIndex--; updateCard(); } }
 
-            let lines = text.split('\n');
-            let count = 0;
+    // ====== TIỆN ÍCH CHUNG ======
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-            lines.forEach(line => {
-                let parts = line.split('\t'); // Quizlet mặc định cách nhau bằng phím Tab
-                if(parts.length >= 2) {
-                    let cn = parts[0].trim();
-                    let pin = parts.length === 3 ? parts[1].trim() : ""; // Nếu có 3 cột: Chữ - Pinyin - Nghĩa
-                    let vn = parts.length === 3 ? parts[2].trim() : parts[1].trim(); // Nếu có 2 cột: Chữ - Nghĩa
-                    
-                    vocabList.push({cn, pin, vn});
-                    count++;
-                }
-            });
-
-            if(count > 0) {
-                localStorage.setItem('hsk_vocab', JSON.stringify(vocabList));
-                document.getElementById('quizletInput').value = '';
-                alert(`Đã thêm thành công ${count} từ vựng!`);
-                currentIndex = vocabList.length - count; // Nhảy tới từ mới nhất
-                updateCard();
-            } else {
-                alert("Không nhận diện được định dạng. Đảm bảo dữ liệu được copy từ Quizlet (cách nhau bằng phím Tab).");
-            }
+    function pickRandomWords(n) {
+        if (vocabList.length === 0) return [];
+        const pool = [...vocabList];
+        const picked = [];
+        const count = Math.min(n, pool.length);
+        for (let i = 0; i < count; i++) {
+            const idx = Math.floor(Math.random() * pool.length);
+            picked.push(pool.splice(idx, 1)[0]);
         }
+        return picked;
+    }
 
-        // Xóa toàn bộ
-        function clearAll() {
-            if(confirm("Bạn có chắc muốn xóa sạch kho từ vựng không?")) {
-                vocabList = [];
-                localStorage.removeItem('hsk_vocab');
-                updateCard();
-            }
+    function setLoading(scope, isLoading) {
+        const map = { write: 'writeLoading', grade: 'gradeLoading', speak: 'speakLoading' };
+        const el = document.getElementById(map[scope]);
+        if (el) el.classList.toggle('hidden', !isLoading);
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        document.querySelectorAll('.tab-content').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + tab));
+    }
+
+    function setDifficulty(d) {
+        currentDifficulty = d;
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === d));
+    }
+
+    // ====== API KEY (OpenAI) ======
+    function getApiKey() { return localStorage.getItem('openai_api_key') || ''; }
+    function saveApiKey(key) { localStorage.setItem('openai_api_key', key); }
+    function openApiKeyModal() {
+        document.getElementById('apiKeyInput').value = getApiKey();
+        document.getElementById('apiKeyModal').classList.remove('hidden');
+    }
+    function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+    function submitApiKey() {
+        const val = document.getElementById('apiKeyInput').value.trim();
+        if (!val) { alert('Vui lòng nhập API key.'); return; }
+        saveApiKey(val);
+        closeApiKeyModal();
+    }
+
+    async function callOpenAI(messages, jsonMode = true) {
+        const key = getApiKey();
+        if (!key) {
+            openApiKeyModal();
+            throw new Error('Chưa có API key. Vui lòng nhập rồi bấm lại nút vừa rồi.');
         }
+        const body = { model: OPENAI_MODEL, messages, temperature: 0.7 };
+        if (jsonMode) body.response_format = { type: 'json_object' };
 
-        function flipCard() { document.querySelector('.flashcard').classList.toggle('flipped'); }
-        function nextWord() { if(currentIndex < vocabList.length - 1) { currentIndex++; updateCard(); } }
-        function prevWord() { if(currentIndex > 0) { currentIndex--; updateCard(); } }
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+            body: JSON.stringify(body)
+        });
 
-        updateCard(); // Chạy lần đầu
-    </script>
+        if (!res.ok) {
+            let msg = 'Lỗi HTTP ' + res.status;
+            try { const j = await res.json(); if (j.error && j.error.message) msg = j.error.message; } catch (_) {}
+            throw new Error(msg);
+        }
+        const data = await res.json();
+        const content = data.choices[0].message.content;
+        return jsonMode ? JSON.parse(content) : content;
+    }
+
+    // ====== NHẬN DIỆN GIỌNG NÓI (Web Speech API) ======
+    function createRecognizer(onResult) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome hoặc Edge.');
+            return null;
+        }
+        const rec = new SR();
+        rec.lang = 'zh-CN';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.onresult = (e) => onResult(e.results[0][0].transcript);
+        rec.onerror = (e) => console.error('Speech recognition error', e);
+        return rec;
+    }
+
+    // ====== LUYỆN VIẾT ======
+    async function generatePassage() {
+        if (vocabList.length === 0) { alert('Bạn cần nhập từ vựng trước (khung bên trái).'); return; }
+        const cfg = DIFFICULTY_CONFIG[currentDifficulty];
+        currentTargetWords = pickRandomWords(cfg.wordCount);
+        setLoading('write', true);
+        try {
+            const wordListStr = currentTargetWords.map(w => `${w.cn} (${w.vn})`).join(', ');
+            const result = await callOpenAI([
+                { role: 'system', content: 'Bạn là giáo viên tiếng Trung, tạo bài luyện dịch Anh-Trung cho học sinh Việt Nam. Chỉ trả lời đúng định dạng JSON được yêu cầu.' },
+                { role: 'user', content: `Viết một đoạn văn TIẾNG ANH (không phải tiếng Trung), độ khó "${cfg.label}" (${cfg.sentences}), có sử dụng tự nhiên các khái niệm của những từ sau (Chữ Hán (nghĩa tiếng Việt)): ${wordListStr}. Đoạn văn phải mạch lạc, có nghĩa, không chỉ liệt kê từ rời rạc. Trả về JSON: {"passage": "..."}` }
+            ]);
+            currentPassage = result.passage;
+            renderPassage();
+        } catch (e) {
+            alert('Không tạo được bài: ' + e.message);
+        } finally {
+            setLoading('write', false);
+        }
+    }
+
+    function renderPassage() {
+        document.getElementById('passageText').innerText = currentPassage;
+        document.getElementById('passageCard').classList.remove('hidden');
+        const input = document.getElementById('writeInput');
+        input.value = '';
+        input.classList.remove('hidden');
+        document.getElementById('gradeRow').classList.remove('hidden');
+        document.getElementById('writeResult').classList.add('hidden');
+    }
+
+    async function gradeWriting() {
+        const userText = document.getElementById('writeInput').value.trim();
+        if (!userText) { alert('Bạn chưa nhập bản dịch.'); return; }
+        setLoading('grade', true);
+        try {
+            const wordListStr = currentTargetWords.map(w => w.cn).join(', ');
+            const result = await callOpenAI([
+                { role: 'system', content: 'Bạn là giáo viên tiếng Trung, chấm bài dịch Anh-Trung của học sinh Việt Nam, nghiêm túc nhưng khích lệ. Giải thích bằng tiếng Việt. Chỉ trả lời đúng JSON yêu cầu.' },
+                { role: 'user', content: `Đoạn tiếng Anh gốc: "${currentPassage}"\nBài dịch tiếng Trung của học sinh: "${userText}"\nCác từ vựng cần dùng: ${wordListStr}\nHãy: sửa thành câu tiếng Trung đúng/tự nhiên nhất, liệt kê từng lỗi sai cụ thể, ghi pinyin đầy đủ cho câu đã sửa, nhận xét ngắn gọn.\nTrả về JSON: {"corrected":"...", "pinyin":"...", "errors":[{"sai":"...", "sua":"...", "giaithich":"..."}], "nhanxet":"..."}` }
+            ]);
+            renderGrading(result);
+        } catch (e) {
+            alert('Không chấm được bài: ' + e.message);
+        } finally {
+            setLoading('grade', false);
+        }
+    }
+
+    function renderGrading(result) {
+        window._lastCorrected = result.corrected || '';
+        const el = document.getElementById('writeResult');
+        let errorsHtml;
+        if (result.errors && result.errors.length) {
+            errorsHtml = result.errors.map(e => `
+                <div class="error-row">
+                    <span class="error-wrong">${escapeHtml(e.sai)}</span>
+                    <span class="error-arrow">→</span>
+                    <span class="error-correct">${escapeHtml(e.sua)}</span>
+                    <span class="error-explain">${escapeHtml(e.giaithich)}</span>
+                </div>`).join('');
+        } else {
+            errorsHtml = `<p class="no-error">Không có lỗi nào — rất tốt!</p>`;
+        }
+        el.innerHTML = `
+            <div class="result-header"><span class="stamp">已阅</span></div>
+            <p class="card-label">Câu đúng:</p>
+            <p class="hanzi-line">${escapeHtml(result.corrected)}</p>
+            <p class="pinyin-line">${escapeHtml(result.pinyin)}</p>
+            <div class="error-list">${errorsHtml}</div>
+            <p class="comment-text">${escapeHtml(result.nhanxet || '')}</p>
+            <div class="action-row">
+                <button class="ghost-btn" onclick="speakText(window._lastCorrected)">🔊 Nghe câu đúng</button>
+                <button class="ghost-btn" onclick="togglePronPractice(window._lastCorrected, 'pronResultWrite')">🎤 Luyện phát âm câu này</button>
+            </div>
+            <div id="pronResultWrite" class="pron-result"></div>
+        `;
+        el.classList.remove('hidden');
+    }
+
+    // ====== LUYỆN PHÁT ÂM (dùng chung cho Viết + Nói) ======
+    function togglePronPractice(target, containerId) {
+        if (!target) return;
+        if (pronRecognizer) { pronRecognizer.stop(); pronRecognizer = null; return; }
+        const rec = createRecognizer(async (transcript) => {
+            pronRecognizer = null;
+            await gradePronunciation(target, transcript, containerId);
+        });
+        if (!rec) return;
+        pronRecognizer = rec;
+        document.getElementById(containerId).innerHTML = '<p class="listening-text">🎙️ Đang nghe... hãy đọc câu trên</p>';
+        rec.start();
+    }
+
+    async function gradePronunciation(target, transcript, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '<p class="loading-text">⏳ Đang phân tích phát âm...</p>';
+        try {
+            const result = await callOpenAI([
+                { role: 'system', content: 'Bạn là giáo viên phát âm tiếng Trung cho học sinh Việt Nam. Bạn chỉ nhận được văn bản do hệ thống nhận diện giọng nói (ASR) trả về, KHÔNG nghe trực tiếp âm thanh. So sánh với câu đích để suy đoán khả năng sai âm/thanh điệu, nhận xét ngắn gọn và khích lệ bằng tiếng Việt, luôn nói rõ đây là suy đoán qua nhận diện giọng nói chứ không phải chấm âm thanh trực tiếp. Chỉ trả lời đúng JSON yêu cầu.' },
+                { role: 'user', content: `Câu đích: "${target}"\nHệ thống nhận diện được: "${transcript}"\nTrả về JSON: {"nhanXet":"...", "goiY":"..."}` }
+            ]);
+            container.innerHTML = `
+                <p class="asr-text">Hệ thống nghe được: <em>${escapeHtml(transcript)}</em></p>
+                <p class="comment-text">${escapeHtml(result.nhanXet)}</p>
+                <p class="comment-text">${escapeHtml(result.goiY || '')}</p>
+            `;
+        } catch (e) {
+            container.innerHTML = `<p class="error-text">Lỗi: ${escapeHtml(e.message)}</p>`;
+        }
+    }
+
+    // ====== LUYỆN NÓI ======
+    async function generateScenario() {
+        if (vocabList.length === 0) { alert('Bạn cần nhập từ vựng trước (khung bên trái).'); return; }
+        const cfg = DIFFICULTY_CONFIG[currentDifficulty];
+        currentTargetWords = pickRandomWords(cfg.wordCount);
+        speakConversation = [];
+        document.getElementById('turnFeedback').innerHTML = '';
+        setLoading('speak', true);
+        try {
+            const wordListStr = currentTargetWords.map(w => `${w.cn} (${w.vn})`).join(', ');
+            const result = await callOpenAI([
+                { role: 'system', content: 'Bạn là giáo viên tiếng Trung tạo tình huống hội thoại luyện nói cho học sinh Việt Nam. Chỉ trả lời đúng JSON yêu cầu.' },
+                { role: 'user', content: `Tạo một tình huống giao tiếp thực tế, độ khó "${cfg.label}", dùng tự nhiên các từ vựng: ${wordListStr}. Viết bối cảnh ngắn bằng tiếng Việt, và câu mở đầu hội thoại bằng tiếng Trung (đóng vai người đối diện với học sinh). Trả về JSON: {"boiCanh":"...", "cauMoDau":"...", "pinyin":"...", "nghia":"..."}` }
+            ]);
+            renderScenario(result.boiCanh);
+            speakConversation.push({ role: 'ai', text: result.cauMoDau, pinyin: result.pinyin });
+            renderConversation();
+            speakText(result.cauMoDau);
+        } catch (e) {
+            alert('Không tạo được tình huống: ' + e.message);
+        } finally {
+            setLoading('speak', false);
+        }
+    }
+
+    function renderScenario(text) {
+        const el = document.getElementById('scenarioText');
+        el.innerText = '📍 ' + text;
+        el.classList.remove('hidden');
+        document.getElementById('micRow').classList.remove('hidden');
+    }
+
+    function renderConversation() {
+        const el = document.getElementById('conversation');
+        el.innerHTML = speakConversation.map(m => `
+            <div class="bubble-row ${m.role}">
+                <div>
+                    <div class="bubble">${escapeHtml(m.text)}</div>
+                    ${m.pinyin ? `<div class="bubble-meta">${escapeHtml(m.pinyin)}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function setListening(on) {
+        const btn = document.getElementById('micBtn');
+        if (btn) btn.classList.toggle('listening', on);
+    }
+
+    function startListeningForReply() {
+        if (speakRecognizer) { speakRecognizer.stop(); speakRecognizer = null; setListening(false); return; }
+        const rec = createRecognizer(async (transcript) => {
+            setListening(false);
+            speakRecognizer = null;
+            speakConversation.push({ role: 'user', text: transcript });
+            renderConversation();
+            await gradeConversationTurn(transcript);
+        });
+        if (!rec) return;
+        speakRecognizer = rec;
+        setListening(true);
+        rec.start();
+    }
+
+    async function gradeConversationTurn(transcript) {
+        setLoading('speak', true);
+        try {
+            const history = speakConversation.map(m => `${m.role === 'ai' ? 'Đối phương' : 'Học sinh'}: ${m.text}`).join('\n');
+            const result = await callOpenAI([
+                { role: 'system', content: 'Bạn là giáo viên tiếng Trung, nhận xét câu trả lời của học sinh trong hội thoại rồi tiếp tục hội thoại tự nhiên. Câu cuối của học sinh là do hệ thống nhận diện giọng nói trả về, có thể chưa chính xác 100% — nếu câu nghe lạ, hãy suy đoán khả năng lỗi phát âm. Nhận xét bằng tiếng Việt. Chỉ trả lời đúng JSON yêu cầu.' },
+                { role: 'user', content: `Hội thoại đến giờ:\n${history}\n\nHãy: 1) nhận xét ngắn gọn câu vừa rồi (ngữ pháp/từ vựng/khả năng lỗi phát âm), 2) đưa câu gợi ý nói tốt hơn nếu cần kèm pinyin, 3) tiếp tục hội thoại bằng 1 câu tiếng Trung mới hợp lý. Trả về JSON: {"nhanXet":"...", "cauGoiY":"...", "pinyinGoiY":"...", "cauTiep":"...", "pinyinTiep":"..."}` }
+            ]);
+            document.getElementById('turnFeedback').innerHTML = `
+                <p class="comment-text">${escapeHtml(result.nhanXet)}</p>
+                ${result.cauGoiY ? `<p class="hanzi-line small">${escapeHtml(result.cauGoiY)}</p><p class="pinyin-line">${escapeHtml(result.pinyinGoiY || '')}</p>` : ''}
+            `;
+            speakConversation.push({ role: 'ai', text: result.cauTiep, pinyin: result.pinyinTiep });
+            renderConversation();
+            speakText(result.cauTiep);
+        } catch (e) {
+            document.getElementById('turnFeedback').innerHTML = `<p class="error-text">Lỗi: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setLoading('speak', false);
+        }
+    }
+
+    // ====== KHỞI ĐỘNG ======
+    updateCard();
+</script>
 </body>
 </html>
