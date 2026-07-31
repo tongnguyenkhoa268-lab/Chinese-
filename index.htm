@@ -7,36 +7,40 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; height: 100vh; }
         
-        /* Chia đôi màn hình */
-        .left-panel { flex: 1; padding: 20px; border-right: 2px solid #ddd; display: flex; flex-direction: column; align-items: center; }
+        .left-panel { flex: 1; padding: 20px; border-right: 2px solid #ddd; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
         .right-panel { flex: 1; display: flex; flex-direction: column; background: white; }
 
-        /* Khung thêm từ vựng */
-        .add-word-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 80%; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .add-word-box input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; min-width: 80px; }
-        .add-word-box button { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        /* Khung nhập dữ liệu */
+        .input-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 80%; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .input-box textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; min-height: 60px; font-family: inherit; }
+        .input-box button { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
         /* Thẻ Flashcard */
-        .flashcard { width: 300px; height: 200px; perspective: 1000px; cursor: pointer; margin-top: 20px; }
+        .flashcard { width: 320px; height: 220px; perspective: 1000px; cursor: pointer; margin-top: 20px; position: relative; }
         .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
         .flashcard.flipped .card-inner { transform: rotateY(180deg); }
         .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .card-front { background: #fff; color: #333; }
         .card-back { background: #2b5278; color: white; transform: rotateY(180deg); }
         
-        .word-cn { font-size: 3em; font-weight: bold; }
-        .word-pin { font-size: 1.2em; color: #666; }
-        .word-vn { font-size: 1.5em; }
+        .word-cn { font-size: 3.5em; font-weight: bold; margin-bottom: 5px; }
+        .word-pin { font-size: 1.2em; color: #666; margin-bottom: 15px; }
+        .word-vn { font-size: 1.6em; padding: 0 20px; text-align: center; }
+        
+        /* Nút loa đọc âm thanh */
+        .speaker-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; z-index: 10; opacity: 0.6; }
+        .speaker-btn:hover { opacity: 1; transform: scale(1.1); }
 
         .controls { margin-top: 20px; display: flex; gap: 10px; }
-        .controls button { padding: 8px 20px; cursor: pointer; border: none; background: #0084ff; color: white; border-radius: 5px; }
+        .controls button { padding: 10px 20px; cursor: pointer; border: none; background: #0084ff; color: white; border-radius: 5px; font-weight: bold; }
+        .delete-btn { background: #dc3545 !important; }
 
         /* Giao diện Chatbot */
         .chat-header { background: #2b5278; color: white; padding: 15px; text-align: center; font-weight: bold; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #e5ddd5; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; background: #e5ddd5; }
         .chat-input { padding: 15px; background: #f0f0f0; display: flex; gap: 10px; }
         .chat-input input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .chat-input button { padding: 10px 20px; background: #2b5278; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        .chat-input button { padding: 10px 20px; background: #2b5278; color: white; border: none; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -45,16 +49,16 @@
     <div class="left-panel">
         <h2 style="color: #2b5278;">📚 Kho Từ Vựng HSK</h2>
         
-        <div class="add-word-box">
-            <input type="text" id="cnInput" placeholder="Chữ Hán (VD: 学习)">
-            <input type="text" id="pinInput" placeholder="Pinyin (VD: xuéxí)">
-            <input type="text" id="vnInput" placeholder="Nghĩa (VD: Học tập)">
-            <button onclick="addWord()">Thêm từ</button>
+        <div class="input-box">
+            <textarea id="quizletInput" placeholder="Copy từ Quizlet dán vào đây (Định dạng: Chữ Hán [Tab] Pinyin [Tab] Nghĩa) hoặc (Chữ Hán [Tab] Nghĩa)..."></textarea>
+            <button onclick="importQuizlet()">📥 Nhập từ vựng từ Quizlet</button>
+            <button class="delete-btn" onclick="clearAll()">🗑️ Xóa toàn bộ kho từ</button>
         </div>
 
         <div class="flashcard" onclick="flipCard()">
             <div class="card-inner" id="cardInner">
                 <div class="card-front">
+                    <button class="speaker-btn" onclick="speakWord(event)">🔊</button>
                     <div class="word-cn" id="displayCn">Thêm từ</div>
                     <div class="word-pin" id="displayPin">để bắt đầu</div>
                 </div>
@@ -65,18 +69,17 @@
         </div>
 
         <div class="controls">
-            <button onclick="prevWord()">⬅️ Từ trước</button>
-            <button onclick="nextWord()">Từ sau ➡️</button>
+            <button onclick="prevWord()">⬅️ Trước</button>
+            <button onclick="speakWord(event)">🔊 Đọc lại</button>
+            <button onclick="nextWord()">Sau ➡️</button>
         </div>
-        <p id="wordCount">Tổng số từ: 0</p>
+        <p id="wordCount" style="font-weight: bold; color: #555;">Tổng số từ: 0</p>
     </div>
 
     <!-- NỬA PHẢI: CHATBOT -->
     <div class="right-panel">
         <div class="chat-header">🤖 AI Chatbot (Chờ lắp não)</div>
-        <div class="chat-messages" id="chatBox">
-            <!-- Tin nhắn sẽ hiện ở đây -->
-        </div>
+        <div class="chat-messages"></div>
         <div class="chat-input">
             <button title="Bấm để nói">🎤</button>
             <input type="text" placeholder="Gõ tiếng Trung vào đây..." disabled>
@@ -85,50 +88,85 @@
     </div>
 
     <script>
-        // BỘ NHỚ LƯU TỪ VỰNG
         let vocabList = JSON.parse(localStorage.getItem('hsk_vocab')) || [];
         let currentIndex = 0;
 
+        // Cập nhật thẻ hiển thị
         function updateCard() {
-            if(vocabList.length === 0) return;
+            if(vocabList.length === 0) {
+                document.getElementById('displayCn').innerText = "Trống";
+                document.getElementById('displayPin').innerText = "";
+                document.getElementById('displayVn').innerText = "Vui lòng nhập từ vựng";
+                document.getElementById('wordCount').innerText = `Tổng số từ: 0`;
+                return;
+            }
             document.getElementById('displayCn').innerText = vocabList[currentIndex].cn;
-            document.getElementById('displayPin').innerText = vocabList[currentIndex].pin;
+            document.getElementById('displayPin').innerText = vocabList[currentIndex].pin || "";
             document.getElementById('displayVn').innerText = vocabList[currentIndex].vn;
             document.getElementById('wordCount').innerText = `Từ số: ${currentIndex + 1} / ${vocabList.length}`;
-            // Đảm bảo thẻ luôn ngửa mặt chữ Hán khi sang từ mới
             document.querySelector('.flashcard').classList.remove('flipped');
+            
+            // Tự động đọc từ khi chuyển sang từ mới
+            speakWord(); 
         }
 
-        function addWord() {
-            let cn = document.getElementById('cnInput').value.trim();
-            let pin = document.getElementById('pinInput').value.trim();
-            let vn = document.getElementById('vnInput').value.trim();
+        // Đọc tiếng Trung bằng Web Speech API
+        function speakWord(event) {
+            if(event) event.stopPropagation(); // Ngăn việc click nút loa làm lật thẻ
+            if(vocabList.length === 0) return;
             
-            if(cn && vn) {
-                vocabList.push({cn, pin, vn});
+            let word = vocabList[currentIndex].cn;
+            let utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'zh-CN'; // Ngôn ngữ tiếng Trung Quốc
+            utterance.rate = 0.9; // Tốc độ đọc (1 là bình thường, nhỏ hơn là chậm lại)
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Nhập dữ liệu từ Quizlet
+        function importQuizlet() {
+            let text = document.getElementById('quizletInput').value.trim();
+            if(!text) { alert("Vui lòng dán dữ liệu từ Quizlet vào!"); return; }
+
+            let lines = text.split('\n');
+            let count = 0;
+
+            lines.forEach(line => {
+                let parts = line.split('\t'); // Quizlet mặc định cách nhau bằng phím Tab
+                if(parts.length >= 2) {
+                    let cn = parts[0].trim();
+                    let pin = parts.length === 3 ? parts[1].trim() : ""; // Nếu có 3 cột: Chữ - Pinyin - Nghĩa
+                    let vn = parts.length === 3 ? parts[2].trim() : parts[1].trim(); // Nếu có 2 cột: Chữ - Nghĩa
+                    
+                    vocabList.push({cn, pin, vn});
+                    count++;
+                }
+            });
+
+            if(count > 0) {
                 localStorage.setItem('hsk_vocab', JSON.stringify(vocabList));
-                document.getElementById('cnInput').value = '';
-                document.getElementById('pinInput').value = '';
-                document.getElementById('vnInput').value = '';
-                currentIndex = vocabList.length - 1;
+                document.getElementById('quizletInput').value = '';
+                alert(`Đã thêm thành công ${count} từ vựng!`);
+                currentIndex = vocabList.length - count; // Nhảy tới từ mới nhất
+                updateCard();
+            } else {
+                alert("Không nhận diện được định dạng. Đảm bảo dữ liệu được copy từ Quizlet (cách nhau bằng phím Tab).");
+            }
+        }
+
+        // Xóa toàn bộ
+        function clearAll() {
+            if(confirm("Bạn có chắc muốn xóa sạch kho từ vựng không?")) {
+                vocabList = [];
+                localStorage.removeItem('hsk_vocab');
                 updateCard();
             }
         }
 
-        function flipCard() {
-            document.querySelector('.flashcard').classList.toggle('flipped');
-        }
+        function flipCard() { document.querySelector('.flashcard').classList.toggle('flipped'); }
+        function nextWord() { if(currentIndex < vocabList.length - 1) { currentIndex++; updateCard(); } }
+        function prevWord() { if(currentIndex > 0) { currentIndex--; updateCard(); } }
 
-        function nextWord() {
-            if(currentIndex < vocabList.length - 1) { currentIndex++; updateCard(); }
-        }
-
-        function prevWord() {
-            if(currentIndex > 0) { currentIndex--; updateCard(); }
-        }
-
-        // Chạy lần đầu khi mở web
-        updateCard();
+        updateCard(); // Chạy lần đầu
     </script>
 </body>
 </html>
