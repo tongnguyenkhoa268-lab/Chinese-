@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK Flashcard & Chatbot</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; height: 100vh; }
+        
+        /* Chia đôi màn hình */
+        .left-panel { flex: 1; padding: 20px; border-right: 2px solid #ddd; display: flex; flex-direction: column; align-items: center; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; background: white; }
+
+        /* Khung thêm từ vựng */
+        .add-word-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 80%; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .add-word-box input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; min-width: 80px; }
+        .add-word-box button { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* Thẻ Flashcard */
+        .flashcard { width: 300px; height: 200px; perspective: 1000px; cursor: pointer; margin-top: 20px; }
+        .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
+        .flashcard.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .card-front { background: #fff; color: #333; }
+        .card-back { background: #2b5278; color: white; transform: rotateY(180deg); }
+        
+        .word-cn { font-size: 3em; font-weight: bold; }
+        .word-pin { font-size: 1.2em; color: #666; }
+        .word-vn { font-size: 1.5em; }
+
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        .controls button { padding: 8px 20px; cursor: pointer; border: none; background: #0084ff; color: white; border-radius: 5px; }
+
+        /* Giao diện Chatbot */
+        .chat-header { background: #2b5278; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #e5ddd5; }
+        .chat-input { padding: 15px; background: #f0f0f0; display: flex; gap: 10px; }
+        .chat-input input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
+        .chat-input button { padding: 10px 20px; background: #2b5278; color: white; border: none; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- NỬA TRÁI: FLASHCARD -->
+    <div class="left-panel">
+        <h2 style="color: #2b5278;">📚 Kho Từ Vựng HSK</h2>
+        
+        <div class="add-word-box">
+            <input type="text" id="cnInput" placeholder="Chữ Hán (VD: 学习)">
+            <input type="text" id="pinInput" placeholder="Pinyin (VD: xuéxí)">
+            <input type="text" id="vnInput" placeholder="Nghĩa (VD: Học tập)">
+            <button onclick="addWord()">Thêm từ</button>
+        </div>
+
+        <div class="flashcard" onclick="flipCard()">
+            <div class="card-inner" id="cardInner">
+                <div class="card-front">
+                    <div class="word-cn" id="displayCn">Thêm từ</div>
+                    <div class="word-pin" id="displayPin">để bắt đầu</div>
+                </div>
+                <div class="card-back">
+                    <div class="word-vn" id="displayVn">Nghĩa tiếng Việt</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="prevWord()">⬅️ Từ trước</button>
+            <button onclick="nextWord()">Từ sau ➡️</button>
+        </div>
+        <p id="wordCount">Tổng số từ: 0</p>
+    </div>
+
+    <!-- NỬA PHẢI: CHATBOT -->
+    <div class="right-panel">
+        <div class="chat-header">🤖 AI Chatbot (Chờ lắp não)</div>
+        <div class="chat-messages" id="chatBox">
+            <!-- Tin nhắn sẽ hiện ở đây -->
+        </div>
+        <div class="chat-input">
+            <button title="Bấm để nói">🎤</button>
+            <input type="text" placeholder="Gõ tiếng Trung vào đây..." disabled>
+            <button disabled>Gửi</button>
+        </div>
+    </div>
+
+    <script>
+        // BỘ NHỚ LƯU TỪ VỰNG
+        let vocabList = JSON.parse(localStorage.getItem('hsk_vocab')) || [];
+        let currentIndex = 0;
+
+        function updateCard() {
+            if(vocabList.length === 0) return;
+            document.getElementById('displayCn').innerText = vocabList[currentIndex].cn;
+            document.getElementById('displayPin').innerText = vocabList[currentIndex].pin;
+            document.getElementById('displayVn').innerText = vocabList[currentIndex].vn;
+            document.getElementById('wordCount').innerText = `Từ số: ${currentIndex + 1} / ${vocabList.length}`;
+            // Đảm bảo thẻ luôn ngửa mặt chữ Hán khi sang từ mới
+            document.querySelector('.flashcard').classList.remove('flipped');
+        }
+
+        function addWord() {
+            let cn = document.getElementById('cnInput').value.trim();
+            let pin = document.getElementById('pinInput').value.trim();
+            let vn = document.getElementById('vnInput').value.trim();
+            
+            if(cn && vn) {
+                vocabList.push({cn, pin, vn});
+                localStorage.setItem('hsk_vocab', JSON.stringify(vocabList));
+                document.getElementById('cnInput').value = '';
+                document.getElementById('pinInput').value = '';
+                document.getElementById('vnInput').value = '';
+                currentIndex = vocabList.length - 1;
+                updateCard();
+            }
+        }
+
+        function flipCard() {
+            document.querySelector('.flashcard').classList.toggle('flipped');
+        }
+
+        function nextWord() {
+            if(currentIndex < vocabList.length - 1) { currentIndex++; updateCard(); }
+        }
+
+        function prevWord() {
+            if(currentIndex > 0) { currentIndex--; updateCard(); }
+        }
+
+        // Chạy lần đầu khi mở web
+        updateCard();
+    </script>
+</body>
+</html>
